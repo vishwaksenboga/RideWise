@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RideWise — AI Smart Travel</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ═══════════════════════ NAVBAR ═══════════════════════ -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <span class="brand-name">Ride<em>Wise</em></span>
+      </div>
+      <div class="nav-links">
+        <a href="#" class="nav-link active">Compare</a>
+        <a href="#" class="nav-link">Routes</a>
+        <div class="history-wrapper">
+          <a href="#" class="nav-link" id="historyLink">History</a>
+          <div class="history-dropdown" id="historyDropdown">
+            <div class="history-header">Recent Searches</div>
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <span class="theme-icon sun"><i data-lucide="sun"></i></span>
+          <span class="theme-icon moon"><i data-lucide="moon"></i></span>
+        </button>
+        <div class="avatar" id="avatarBtn">RW</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════ HERO ═══════════════════════ -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+      <div class="grid-lines"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        AI-Powered Travel Intelligence
+      </div>
+      <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 8px;">Smart Routes,<br /><em>Smarter Savings</em>
+      </h1>
+      <p class="hero-sub">Compare all ride options instantly. Find the fastest, cheapest, or best-value route across
+        Uber, Ola, Rapido, Metro, Bus, and more.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ MAIN APP ═══════════════════════ -->
+  <main class="app-main">
+
+    <div class="top-panels-grid">
+      <!-- SEARCH PANEL -->
+      <div class="search-panel glass-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i data-lucide="navigation-2"></i>
+            Plan Your Journey
+          </div>
+          <div class="panel-subtitle">Enter origin & destination to compare all options</div>
+        </div>
+
+        <div class="location-inputs">
+          <div class="input-group">
+            <div class="input-dot dot-green"></div>
+            <div class="input-field-wrap">
+              <label>From</label>
+              <div class="input-inner">
+                <input type="text" id="fromInput" placeholder="Current location or city..." autocomplete="off" />
+                <button class="locate-btn" id="clearFromBtn" type="button" title="Clear" style="display:none; border-left:none;">
+                  <i data-lucide="x"></i>
+                </button>
+                <button class="locate-btn" id="locateBtn" title="Use current location">
+                  <i data-lucide="crosshair"></i>
+                </button>
+              </div>
+              <div class="autocomplete-list" id="fromSuggestions"></div>
+            </div>
+          </div>
+
+          <button class="swap-btn" id="swapBtn" title="Swap locations">
+            <i data-lucide="arrow-up-down"></i>
+          </button>
+
+          <div class="input-group">
+            <div class="input-dot dot-red"></div>
+            <div class="input-field-wrap">
+              <label>To</label>
+              <div class="input-inner">
+                <input type="text" id="toInput" placeholder="Where are you going?" autocomplete="off" />
+                <button class="locate-btn" id="clearToBtn" type="button" title="Clear" style="display:none; border-left:none;">
+                  <i data-lucide="x"></i>
+                </button>
+              </div>
+              <div class="autocomplete-list" id="toSuggestions"></div>
+            </div>
+          </div>
+
+          <div id="extraStopsContainer"></div>
+          <button class="add-stop-btn" id="addStopBtn" type="button">
+            <i data-lucide="plus"></i> Add Stop
+          </button>
+        </div>
+
+        <div class="panel-actions">
+          <div class="quick-tags">
+            <button class="tag-btn" onclick="setQuickRoute('airport')"><i data-lucide="plane"></i> Airport</button>
+            <button class="tag-btn" onclick="setQuickRoute('station')"><i data-lucide="train"></i> Station</button>
+            <button class="tag-btn" onclick="setQuickRoute('mall')"><i data-lucide="shopping-bag"></i> Mall</button>
+            <button class="tag-btn" onclick="setQuickRoute('hospital')"><i data-lucide="activity"></i> Hospital</button>
+          </div>
+          <button class="compare-btn" id="compareBtn">
+            <span class="btn-text">
+              <i data-lucide="zap"></i>
+              Compare All Rides
+            </span>
+            <span class="btn-loader hidden">
+              <span class="spinner"></span>
+              Analyzing routes...
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="map-section glass-card" id="mapSection">
+        <div class="map-header">
+          <div class="map-title"><i data-lucide="map"></i> Live Route Map</div>
+          <div class="map-meta" id="mapMeta">—</div>
+        </div>
+        <div id="map"></div>
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-dot green"></span> Start</span>
+          <span class="legend-item"><span class="legend-dot red"></span> Destination</span>
+          <span class="legend-item"><span class="legend-line"></span> Route</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-section" id="resultsSection" style="display:none">
+
+      <!-- AI RECOMMENDATION -->
+      <div class="ai-banner glass-card" id="aiBanner">
+        <div class="ai-icon"><i data-lucide="sparkles"></i></div>
+        <div class="ai-text">
+          <div class="ai-title">AI Recommendation</div>
+          <div class="ai-desc" id="aiDesc">Analyzing best options for you...</div>
+        </div>
+        <div class="ai-badge" id="aiBadge">Best Choice</div>
+      </div>
+
+      <!-- TABS -->
+      <div class="result-tabs">
+        <button class="tab-btn" data-tab="rides"><i data-lucide="car"></i> Ride Services</button>
+        <button class="tab-btn" data-tab="public"><i data-lucide="bus"></i> Public Transport</button>
+        <button class="tab-btn active" data-tab="all"><i data-lucide="layers"></i> All Options</button>
+      </div>
+
+      <!-- RIDE CARDS -->
+      <div class="cards-grid" id="rideCards" style="display:none"></div>
+      <div class="cards-grid" id="publicCards" style="display:none"></div>
+      <div class="cards-grid" id="allCards"></div>
+
+      <!-- COMPARISON TABLE -->
+      <div class="comparison-table glass-card" id="compTable">
+        <div class="comp-title"><i data-lucide="bar-chart-2"></i> Full Comparison</div>
+        <div class="table-wrap">
+          <table id="compTableEl">
+            <thead>
+              <tr>
+                <th>Option</th>
+                <th>Cost</th>
+                <th>Duration</th>
+                <th>Distance</th>
+                <th>Type</th>
+                <th>Score</th>
+                <th>Badge</th>
+              </tr>
+            </thead>
+            <tbody id="compTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+      <div class="loading-rings">
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="ring r3"></div>
+        <div class="loading-core"><i data-lucide="zap"></i></div>
+      </div>
+      <div class="loading-title">Analyzing Routes</div>
+      <div class="loading-steps">
+        <div class="loading-step active" id="ls1"><i data-lucide="map-pin"></i> Detecting locations...</div>
+        <div class="loading-step" id="ls2"><i data-lucide="map"></i> Calculating distances...</div>
+        <div class="loading-step" id="ls3"><i data-lucide="car"></i> Comparing ride options...</div>
+        <div class="loading-step" id="ls4"><i data-lucide="cpu"></i> Running AI analysis...</div>
+        <div class="loading-step" id="ls5"><i data-lucide="check-circle"></i> Preparing results...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-name small">Ride<em>Wise</em></span>
+        <span class="footer-tag">AI-Powered Multi-Modal Travel</span>
+      </div>
+      <div class="footer-links">
+        <span>Built with Leaflet.js + OpenStreetMap</span>
+        <span class="sep">·</span>
+        <span>Smart Routing Engine v4.0</span>
+        <span class="sep">·</span>
+        <span>© 2026 RideWise</span>
+      </div>
+      <div class="footer-badges">
+        <span class="f-badge">🇮🇳 India</span>
+        <span class="f-badge">⚡ Real-time</span>
+        <span class="f-badge">🤖 AI</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- INTEGRATIONS SETTINGS MODAL -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="link"></i> Connected Apps</div>
+        <button class="close-modal-btn" id="closeSettingsBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Connect your ride-hailing accounts to fetch personalized live fares and ETAs.</p>
+        
+        <div class="integration-list">
+          <div class="integration-item" data-app="uber">
+            <div class="int-icon" style="background:#000000; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+              <span style="color:white; font-family:sans-serif; font-weight:600; font-size:12px;">Uber</span>
+            </div>
+            <div class="int-info">
+              <div class="int-name">Uber</div>
+              <div class="int-status" id="status-uber">Not connected</div>
+            </div>
+            <div class="int-acct-info hidden" id="info-uber" title="Account: Personal&#10;Rating: 4.8★">
+              <i data-lucide="info" style="color:var(--text-muted); cursor:pointer;"></i>
+            </div>
+            <button class="int-btn" id="btn-uber" onclick="toggleConnect('uber')">Connect</button>
+          </div>
+
+          <div class="integration-item" data-app="ola">
+            <div class="int-icon" style="background:#C6D82A; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+              <span style="color:black; font-family:sans-serif; font-weight:800; font-size:14px; letter-spacing:-0.5px;">ola</span>
+            </div>
+            <div class="int-info">
+              <div class="int-name">Ola</div>
+              <div class="int-status" id="status-ola">Not connected</div>
+            </div>
+             <div class="int-acct-info hidden" id="info-ola" title="Account: Premium&#10;Wallet: ₹240">
+              <i data-lucide="info" style="color:var(--text-muted); cursor:pointer;"></i>
+            </div>
+            <button class="int-btn" id="btn-ola" onclick="toggleConnect('ola')">Connect</button>
+          </div>
+
+          <div class="integration-item" data-app="rapido">
+            <div class="int-icon" style="background:#FCE000; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+              <span style="color:black; font-family:sans-serif; font-weight:700; font-size:10px; text-transform:lowercase;">rapido</span>
+            </div>
+            <div class="int-info">
+              <div class="int-name">Rapido</div>
+              <div class="int-status" id="status-rapido">Not connected</div>
+            </div>
+             <div class="int-acct-info hidden" id="info-rapido" title="Account: Standard&#10;Status: Active">
+              <i data-lucide="info" style="color:var(--text-muted); cursor:pointer;"></i>
+            </div>
+            <button class="int-btn" id="btn-rapido" onclick="toggleConnect('rapido')">Connect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
