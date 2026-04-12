@@ -4,7 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RideWise — AI Smart Travel</title>
+  <title>RideWise — AI Smart Travel Planner</title>
+  <meta name="description"
+    content="RideWise compares Uber, Ola, Rapido, Metro, Bus and Train in seconds. Find the fastest, cheapest or best-value route across India." />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,6 +21,9 @@
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <!-- Chart.js for price comparison -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -40,13 +45,18 @@
         <span class="brand-name">Ride<em>Wise</em></span>
       </div>
       <div class="nav-links">
-        <a href="#" class="nav-link active">Compare</a>
-        <a href="#" class="nav-link">Routes</a>
         <div class="history-wrapper">
           <a href="#" class="nav-link" id="historyLink">History</a>
           <div class="history-dropdown" id="historyDropdown">
             <div class="history-header">Recent Searches</div>
             <div class="history-list" id="historyList"></div>
+          </div>
+        </div>
+        <div class="favorites-wrapper">
+          <a href="#" class="nav-link" id="favoritesLink"><i data-lucide="star"></i> Saved</a>
+          <div class="history-dropdown" id="favoritesDropdown">
+            <div class="history-header">⭐ Favourite Routes</div>
+            <div class="history-list" id="favoritesList"></div>
           </div>
         </div>
       </div>
@@ -75,8 +85,8 @@
       </div>
       <h1 class="hero-title" style="font-size: 2.8rem; margin-bottom: 8px;">Smart Routes,<br /><em>Smarter Savings</em>
       </h1>
-      <p class="hero-sub">Compare all ride options instantly. Find the fastest, cheapest, or best-value route across
-        Uber, Ola, Rapido, Metro, Bus, and more.</p>
+      <p class="hero-sub">We look across Uber, Ola, Rapido, Metro, Bus and Train — then tell you exactly what to take
+        and why.</p>
     </div>
   </section>
 
@@ -91,7 +101,7 @@
             <i data-lucide="navigation-2"></i>
             Plan Your Journey
           </div>
-          <div class="panel-subtitle">Enter origin & destination to compare all options</div>
+          <div class="panel-subtitle">Tell us where you're starting from and where you're headed</div>
         </div>
 
         <div class="location-inputs">
@@ -100,11 +110,16 @@
             <div class="input-field-wrap">
               <label>From</label>
               <div class="input-inner">
-                <input type="text" id="fromInput" placeholder="Current location or city..." autocomplete="off" />
-                <button class="locate-btn" id="clearFromBtn" type="button" title="Clear" style="display:none; border-left:none;">
+                <input type="text" id="fromInput" placeholder="Where are you right now?" autocomplete="off" />
+                <button class="locate-btn voice-input-btn" id="voiceFromBtn" type="button"
+                  title="Speak your starting point">
+                  <i data-lucide="mic"></i>
+                </button>
+                <button class="locate-btn" id="clearFromBtn" type="button" title="Clear"
+                  style="display:none; border-left:none;">
                   <i data-lucide="x"></i>
                 </button>
-                <button class="locate-btn" id="locateBtn" title="Use current location">
+                <button class="locate-btn" id="locateBtn" title="Use my current location">
                   <i data-lucide="crosshair"></i>
                 </button>
               </div>
@@ -112,17 +127,30 @@
             </div>
           </div>
 
-          <button class="swap-btn" id="swapBtn" title="Swap locations">
-            <i data-lucide="arrow-up-down"></i>
-          </button>
+          <!-- Middle row: swap ↕ on left, glowing + on right -->
+          <div class="middle-actions-row">
+            <button class="swap-btn" id="swapBtn" title="Swap locations">
+              <i data-lucide="arrow-up-down"></i>
+            </button>
+            <button class="add-stop-pill" id="addStopBtn" type="button" title="Add a stop along the way">
+              <span class="add-stop-ring">
+                <span class="add-stop-plus">+</span>
+              </span>
+              <span class="add-stop-label">Add stop</span>
+            </button>
+          </div>
 
           <div class="input-group">
             <div class="input-dot dot-red"></div>
             <div class="input-field-wrap">
               <label>To</label>
               <div class="input-inner">
-                <input type="text" id="toInput" placeholder="Where are you going?" autocomplete="off" />
-                <button class="locate-btn" id="clearToBtn" type="button" title="Clear" style="display:none; border-left:none;">
+                <input type="text" id="toInput" placeholder="Where would you like to go?" autocomplete="off" />
+                <button class="locate-btn voice-input-btn" id="voiceToBtn" type="button" title="Speak your destination">
+                  <i data-lucide="mic"></i>
+                </button>
+                <button class="locate-btn" id="clearToBtn" type="button" title="Clear"
+                  style="display:none; border-left:none;">
                   <i data-lucide="x"></i>
                 </button>
               </div>
@@ -131,9 +159,6 @@
           </div>
 
           <div id="extraStopsContainer"></div>
-          <button class="add-stop-btn" id="addStopBtn" type="button">
-            <i data-lucide="plus"></i> Add Stop
-          </button>
         </div>
 
         <div class="panel-actions">
@@ -146,11 +171,11 @@
           <button class="compare-btn" id="compareBtn">
             <span class="btn-text">
               <i data-lucide="zap"></i>
-              Compare All Rides
+              Find My Best Route
             </span>
             <span class="btn-loader hidden">
               <span class="spinner"></span>
-              Analyzing routes...
+              <span id="loadingMsgInline">Checking your options...</span>
             </span>
           </button>
         </div>
@@ -160,7 +185,13 @@
       <div class="map-section glass-card" id="mapSection">
         <div class="map-header">
           <div class="map-title"><i data-lucide="map"></i> Live Route Map</div>
-          <div class="map-meta" id="mapMeta">—</div>
+          <div class="map-header-right">
+            <div class="traffic-indicator" id="trafficIndicator" style="display:none;">
+              <span class="traffic-dot" id="trafficDot"></span>
+              <span id="trafficLabel">Traffic</span>
+            </div>
+            <div class="map-meta" id="mapMeta">—</div>
+          </div>
         </div>
         <div id="map"></div>
         <div class="map-legend">
@@ -174,14 +205,25 @@
     <!-- RESULTS -->
     <div class="results-section" id="resultsSection" style="display:none">
 
+      <!-- SMART SAVINGS BANNER -->
+      <div class="smart-savings-banner" id="smartSavingsBanner" style="display:none">
+        <i data-lucide="lightbulb"></i>
+        <span id="smartSavingsText"></span>
+      </div>
+
       <!-- AI RECOMMENDATION -->
       <div class="ai-banner glass-card" id="aiBanner">
         <div class="ai-icon"><i data-lucide="sparkles"></i></div>
         <div class="ai-text">
-          <div class="ai-title">AI Recommendation</div>
-          <div class="ai-desc" id="aiDesc">Analyzing best options for you...</div>
+          <div class="ai-title">Here's what we think works best</div>
+          <div class="ai-desc" id="aiDesc">Looking at all options for you...</div>
         </div>
-        <div class="ai-badge" id="aiBadge">Best Choice</div>
+        <div class="ai-banner-actions">
+          <button class="share-route-btn" id="shareRouteBtn" title="Share this route">
+            <i data-lucide="share-2"></i> Share
+          </button>
+          <div class="ai-badge" id="aiBadge">Best Choice</div>
+        </div>
       </div>
 
       <!-- TABS -->
@@ -189,12 +231,32 @@
         <button class="tab-btn" data-tab="rides"><i data-lucide="car"></i> Ride Services</button>
         <button class="tab-btn" data-tab="public"><i data-lucide="bus"></i> Public Transport</button>
         <button class="tab-btn active" data-tab="all"><i data-lucide="layers"></i> All Options</button>
+        <button class="tab-btn" data-tab="chart"><i data-lucide="bar-chart-2"></i> Price Chart</button>
       </div>
 
       <!-- RIDE CARDS -->
       <div class="cards-grid" id="rideCards" style="display:none"></div>
       <div class="cards-grid" id="publicCards" style="display:none"></div>
       <div class="cards-grid" id="allCards"></div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" id="emptyState" style="display:none">
+        <div class="empty-icon">🗺️</div>
+        <div class="empty-title">Hmm, we couldn't find routes for this trip</div>
+        <div class="empty-desc">This might be an international route, or the distance is too short for most options. Try
+          tweaking your locations or adding a stop.</div>
+      </div>
+
+      <!-- PRICE CHART SECTION -->
+      <div class="chart-section glass-card" id="chartSection" style="display:none">
+        <div class="chart-header">
+          <div class="chart-title"><i data-lucide="bar-chart-2"></i> Price Comparison</div>
+          <div class="chart-sub">All options at a glance — click any bar to book</div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="priceChartCanvas"></canvas>
+        </div>
+      </div>
 
       <!-- COMPARISON TABLE -->
       <div class="comparison-table glass-card" id="compTable">
@@ -205,9 +267,10 @@
               <tr>
                 <th>Option</th>
                 <th>Cost</th>
-                <th>Duration</th>
+                <th>Time</th>
                 <th>Distance</th>
                 <th>Type</th>
+                <th>ETA Confidence</th>
                 <th>Score</th>
                 <th>Badge</th>
               </tr>
@@ -230,19 +293,33 @@
         <div class="ring r3"></div>
         <div class="loading-core"><i data-lucide="zap"></i></div>
       </div>
-      <div class="loading-title">Analyzing Routes</div>
+      <div class="loading-title" id="loadingTitle">Finding the smartest route for you...</div>
       <div class="loading-steps">
-        <div class="loading-step active" id="ls1"><i data-lucide="map-pin"></i> Detecting locations...</div>
-        <div class="loading-step" id="ls2"><i data-lucide="map"></i> Calculating distances...</div>
-        <div class="loading-step" id="ls3"><i data-lucide="car"></i> Comparing ride options...</div>
-        <div class="loading-step" id="ls4"><i data-lucide="cpu"></i> Running AI analysis...</div>
-        <div class="loading-step" id="ls5"><i data-lucide="check-circle"></i> Preparing results...</div>
+        <div class="loading-step active" id="ls1"><i data-lucide="map-pin"></i> Pinpointing where you are...</div>
+        <div class="loading-step" id="ls2"><i data-lucide="map"></i> Mapping out your journey...</div>
+        <div class="loading-step" id="ls3"><i data-lucide="car"></i> Checking available ride options...</div>
+        <div class="loading-step" id="ls4"><i data-lucide="cpu"></i> Running our smart analysis...</div>
+        <div class="loading-step" id="ls5"><i data-lucide="check-circle"></i> Almost done — just polishing results...
+        </div>
       </div>
     </div>
   </div>
 
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
+
+  <!-- WHY THIS ROUTE MODAL -->
+  <div class="modal-overlay" id="whyModal">
+    <div class="modal-card glass-card why-modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><i data-lucide="help-circle"></i> Why this route?</div>
+        <button class="close-modal-btn" id="closeWhyBtn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" id="whyModalBody">
+        <div class="why-content"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- FOOTER -->
   <footer class="footer">
@@ -275,10 +352,11 @@
       </div>
       <div class="modal-body">
         <p class="modal-desc">Connect your ride-hailing accounts to fetch personalized live fares and ETAs.</p>
-        
+
         <div class="integration-list">
           <div class="integration-item" data-app="uber">
-            <div class="int-icon" style="background:#000000; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+            <div class="int-icon"
+              style="background:#000000; border-radius:10px; display:flex; align-items:center; justify-content:center;">
               <span style="color:white; font-family:sans-serif; font-weight:600; font-size:12px;">Uber</span>
             </div>
             <div class="int-info">
@@ -292,28 +370,32 @@
           </div>
 
           <div class="integration-item" data-app="ola">
-            <div class="int-icon" style="background:#C6D82A; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-              <span style="color:black; font-family:sans-serif; font-weight:800; font-size:14px; letter-spacing:-0.5px;">ola</span>
+            <div class="int-icon"
+              style="background:#C6D82A; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+              <span
+                style="color:black; font-family:sans-serif; font-weight:800; font-size:14px; letter-spacing:-0.5px;">ola</span>
             </div>
             <div class="int-info">
               <div class="int-name">Ola</div>
               <div class="int-status" id="status-ola">Not connected</div>
             </div>
-             <div class="int-acct-info hidden" id="info-ola" title="Account: Premium&#10;Wallet: ₹240">
+            <div class="int-acct-info hidden" id="info-ola" title="Account: Premium&#10;Wallet: ₹240">
               <i data-lucide="info" style="color:var(--text-muted); cursor:pointer;"></i>
             </div>
             <button class="int-btn" id="btn-ola" onclick="toggleConnect('ola')">Connect</button>
           </div>
 
           <div class="integration-item" data-app="rapido">
-            <div class="int-icon" style="background:#FCE000; border-radius:8px; display:flex; align-items:center; justify-content:center;">
-              <span style="color:black; font-family:sans-serif; font-weight:700; font-size:10px; text-transform:lowercase;">rapido</span>
+            <div class="int-icon"
+              style="background:#FCE000; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+              <span
+                style="color:black; font-family:sans-serif; font-weight:700; font-size:10px; text-transform:lowercase;">rapido</span>
             </div>
             <div class="int-info">
               <div class="int-name">Rapido</div>
               <div class="int-status" id="status-rapido">Not connected</div>
             </div>
-             <div class="int-acct-info hidden" id="info-rapido" title="Account: Standard&#10;Status: Active">
+            <div class="int-acct-info hidden" id="info-rapido" title="Account: Standard&#10;Status: Active">
               <i data-lucide="info" style="color:var(--text-muted); cursor:pointer;"></i>
             </div>
             <button class="int-btn" id="btn-rapido" onclick="toggleConnect('rapido')">Connect</button>
